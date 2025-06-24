@@ -65,7 +65,7 @@ function App() {
 
     return (
         <div className="game-container">
-            <h1>Joc</h1>
+            <div><h1>Joc</h1></div>
 
             <div className="matrix">
                 {matrix.map((row, i) => (
