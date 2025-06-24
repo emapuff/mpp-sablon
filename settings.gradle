@@ -1,0 +1,6 @@
+rootProject.name = 'mpp_practic'
+include 'Domain'
+include 'Persistance'
+include 'RestServer'
+include 'ui'
+
