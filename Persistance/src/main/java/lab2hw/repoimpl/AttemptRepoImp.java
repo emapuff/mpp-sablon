@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.engine.internal.Collections;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -51,7 +52,21 @@ public class AttemptRepoImp implements AttemptRepo {
                     .getResultList();
         }catch (Exception e){
             logger.info("Returnare esuata!");
+            return List.of();
         }
-        return null;
+    }
+
+    @Override
+    public List<Attempt> findByGameId(Long id){
+        logger.info("Returnez toate incercarile");
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                            "FROM Attempt a WHERE a.game.id = :gameId", Attempt.class)
+                    .setParameter("gameId", id)
+                    .getResultList();
+        }catch (Exception e){
+            logger.info("Returnare esuata!");
+        }
+        return List.of();
     }
 }

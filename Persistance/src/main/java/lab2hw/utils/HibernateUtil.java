@@ -19,10 +19,11 @@ public class HibernateUtil {
     private static SessionFactory createNewSessionFactory() {
         try {
             Configuration config = new Configuration();
-            config.configure(); // caută hibernate.cfg.xml dacă există
-            config.addAnnotatedClass(Player.class);
-            config.addAnnotatedClass(Game.class);
-            config.addAnnotatedClass(Attempt.class);
+            config.configure();
+            config.addAnnotatedClass(lab2hw.Player.class);
+            config.addAnnotatedClass(lab2hw.Game.class);
+            config.addAnnotatedClass(lab2hw.Attempt.class);
+            config.addAnnotatedClass(lab2hw.Configuration.class);
 
             return config.buildSessionFactory();
         } catch (Exception e) {

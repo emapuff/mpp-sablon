@@ -13,4 +13,6 @@ public interface AttemptRepo extends Repository<Long, Attempt>{
 
     List<Attempt> findByPlayerId(Long id);
 
+    List<Attempt> findByGameId(Long id);
+
 }

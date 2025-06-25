@@ -40,3 +40,21 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Node
+node_modules/
+.env
+
+# IntelliJ
+.idea/
+
+# Gradle/Java
+*.class
+/build
+/out
+
+# OS
+.DS_Store
+Thumbs.db
+
+MPP_BD.log
