@@ -47,7 +47,7 @@ public class GameRepoImp implements GameRepo {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
-            game.setFinished(true);
+            game.setIsWon(true);
             session.update(game);   // Hibernate știe ce s-a modificat
             transaction.commit();
         }
@@ -56,5 +56,22 @@ public class GameRepoImp implements GameRepo {
             logger.info("fail to update joc: {}", game.getId());
         }
         return null;
+    }
+
+    @Override
+    public List<Game> findGamesByPlayer(Player p) {
+        logger.info("Returnez toate sesiunile de joc pentru player: {}", p.getId());
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            session.setDefaultReadOnly(true);
+            return session.createQuery(
+                            "FROM Game g WHERE g.player = :player",
+                            Game.class
+                    )
+                    .setParameter("player", p)
+                    .getResultList();
+        } catch (Exception ex) {
+            logger.error("Eroare la interogarea sesiunilor de joc pentru player {}", p.getId(), ex);
+            throw ex;
+        }
     }
 }

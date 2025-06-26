@@ -7,7 +7,7 @@
     <session-factory>
 
         <property name="connection.driver_class">org.sqlite.JDBC</property>
-        <property name="connection.url">jdbc:sqlite:game.db</property>
+        <property name="connection.url">jdbc:sqlite:words.db</property>
 
         <property name="hibernate.hbm2ddl.auto">update</property>
 
