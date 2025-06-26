@@ -22,8 +22,7 @@ public class HibernateUtil {
             config.configure(); // caută hibernate.cfg.xml dacă există
             config.addAnnotatedClass(Player.class);
             config.addAnnotatedClass(Game.class);
-            config.addAnnotatedClass(Attempt.class);
-
+            config.addAnnotatedClass(lab2hw.Configuration.class);
             return config.buildSessionFactory();
         } catch (Exception e) {
             e.printStackTrace();

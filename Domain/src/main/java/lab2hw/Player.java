@@ -20,8 +20,7 @@ public class Player extends lab2hw.Entity<Long> {
     @Column(name="nickname")
     private String nickname;
 
-    @Column(name = "start_time")
-    private LocalDateTime startTime;
+
 
 
     public String getNickname() {
@@ -32,33 +31,24 @@ public class Player extends lab2hw.Entity<Long> {
         this.nickname = nickname;
     }
 
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Player player = (Player) o;
-        return  Objects.equals(nickname, player.nickname) && Objects.equals(startTime, player.startTime);
+        return  Objects.equals(nickname, player.nickname) ;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(),  nickname, startTime);
+        return Objects.hash(super.hashCode(),  nickname);
     }
 
     @Override
     public String toString() {
         return "Player{" +
                 ", nickname='" + nickname + '\'' +
-                ", startTime=" + startTime +
                 '}';
     }
 }

@@ -1,5 +1,7 @@
 package lab2hw;
 
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.springframework.stereotype.Component;
@@ -11,26 +13,43 @@ import java.time.LocalDateTime;
 @Component
 public class Game extends lab2hw.Entity<Long> {
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="player_id", nullable=false)
     private Player player;
 
     private LocalDateTime startTime;
 
-    private boolean finished;
+    private boolean isWon;
 
     private int finalScore;
+
+    private int tryes;
+
+    private int wins;
 
     public Game() {}
 
     public Game(Player player,
                 LocalDateTime startTime,
                 boolean finished,
-                int finalScore) {
+                int finalScore,
+                int tryes, int wins) {
         this.player = player;
         this.startTime = startTime;
-        this.finished = finished;
+        this.isWon = finished;
         this.finalScore = finalScore;
+        this.tryes=tryes;
+        this.wins=wins;
     }
+
+    public int getWins() {
+        return wins;
+    }
+
+    public void setWins(int wins) {
+        this.wins = wins;
+    }
+
     public Player getPlayer() {
         return player;
     }
@@ -47,12 +66,12 @@ public class Game extends lab2hw.Entity<Long> {
         this.startTime = startTime;
     }
 
-    public boolean isFinished() {
-        return finished;
+    public boolean isIsWon() {
+        return isWon;
     }
 
-    public void setFinished(boolean finished) {
-        this.finished = finished;
+    public void setIsWon(boolean finished) {
+        this.isWon = finished;
     }
 
     public int getFinalScore() {
@@ -62,4 +81,22 @@ public class Game extends lab2hw.Entity<Long> {
     public void setFinalScore(int finalScore) {
         this.finalScore = finalScore;
     }
+
+    public boolean isWon() {
+        return isWon;
+    }
+
+    public void setWon(boolean won) {
+        isWon = won;
+    }
+
+    public int getTryes() {
+        return tryes;
+    }
+
+    public void setTryes(int tryes) {
+        this.tryes = tryes;
+    }
+
+
 }

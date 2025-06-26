@@ -1,150 +1,225 @@
 import React, { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./LogIn";
-import './App.css';
+import AdminConfigs from "./AdminConfigs";
+import SockJS                from 'sockjs-client';
+import { Stomp }             from '@stomp/stompjs';
 
-function App() {
-    const [checkedLogin, setCheckedLogin] = useState(false);
-    const [loggedIn, setLoggedIn] = useState(false);
-    const [classament, setClassament] = useState([]);
-    const [configs, setConfigs] = useState([]);
-    const [selectedPosition, setSelectedPosition] = useState("");
-    const [matrix, setMatrix] = useState([
-        ["C", "A", "T"],
-        ["D", "O", "G"],
-        ["P", "I", "G"]
-    ]);
-    const [word, setWord] = useState("");
+function GamePage({ onLogout }) {
+    const [matrix, setMatrix] = useState(Array(2).fill(Array(4).fill('')));
+    const [configLetters, setConfigLetters] = useState([]);    // cele 4 litere
+    const [disabled, setDisabled] = useState([false, false, false, false]); // butoane disable
+    const [attemptResult, setAttemptResult] = useState(null);  // { finalScore, letterChosen }
+    const [classament, setClassament] = useState([]);          // lista ClassamentDTO
+    const [wonGames, setWonGames] = useState([]);              // lista GameWon
+
+    const nickname = localStorage.getItem("nickname");
+
     useEffect(() => {
-        const saved = localStorage.getItem("loggedIn");
-        if (saved === "true") {
-            setLoggedIn(true);
-        }
-        setCheckedLogin(true);
+        // 1) facem fetch iniţial
+        fetch("http://localhost:8080/game/classament",{credentials: "include"})
+            .then(res => {
+                if (!res.ok) throw new Error(res.statusText);
+                return res.json();
+            })
+            .then(data => {
+                const list = Array.isArray(data) ? data : data.data || [];
+                setClassament(list);
+            })
+            .catch(err => {
+                console.error("Error loading classament:", err);
+                setClassament([]);   // ca să nu fie undefined
+            });
+
+        fetch("http://localhost:8080/game",{credentials: "include"})
+          .then(res => res.json())
+            .then(cfg => {
+                  // cfg ar trebui să aibă proprietatea `keys` cu array-ul de litere
+                      setConfigLetters(cfg.keys || []);
+                })
+            .catch(console.error);
+        // 2) deschidem WebSocket + STOMP
+        const socket = new SockJS("http://localhost:8080/ws");
+        const client = Stomp.over(socket);
+
+        client.connect({}, () => {
+            // primele două subscribe-uri, dacă vrei şi la /topic/won
+            client.subscribe("/topic/classament", msg => {
+                setClassament(JSON.parse(msg.body));
+            });
+            client.subscribe("/topic/won", msg => {
+                setWonGames(JSON.parse(msg.body));
+            });
+        });
+
+        // 3) cleanup: deconectare când componenta se demontează
+        return () => client.disconnect();
+
     }, []);
 
-    useEffect(() => {
-        if (loggedIn) {
-            loadClassament();
-            // loadConfigs();
-        }
-    }, [loggedIn]);
-
-    const loadClassament = async () => {
-        const res = await fetch("http://localhost:8080/game");
-        const data = await res.json();
-        setClassament(data);
-    };
-
-    // const loadConfigs = async () => {
-    //     const res = await fetch("http://localhost:8080/game");
-    //     const data = await res.json();
-    //     setConfigs(data);
-    // };
-
-    const handleAttempt = async () => {
-        const nickname = localStorage.getItem("nickname");
-        await fetch(`http://localhost:8080/game?nickname=${nickname}`, {
+    const handleLetterClick = (possition_one, possition_two) => {
+        fetch(`http://localhost:8080/game?nickname=${nickname}`, {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(selectedPosition)
-        });
+            body: JSON.stringify({possition_one, possition_two})
+        })
+            .then(res => res.json())
+            .then(attempt => {
+                setAttemptResult(attempt);
+                if(attempt.data.ok){
+                    setDisabled(prev => {
+                        const next = [...prev];
+                        next[possition_one] = true;
+                        next[possition_two] = true;
+                        // if (next.every(flag => flag)) {
+                        //     refreshTables();
+                        // }
+                        return next;
+                    });
+                }
+
+                if(attempt.data.finished){
+
+                }
+
+            })
+            .catch(console.error);
     };
 
-    const handleUpdateGame = async () => {
-        const nickname = localStorage.getItem("nickname");
-        await fetch(`http://localhost:8080/game?nickname=${nickname}`, {
-            method: "PUT"
-        });
-    };
-
-    if (!checkedLogin) return null;
-
-    if (!loggedIn) {
-        return <Login onLogin={() => setLoggedIn(true)} />;
-    }
 
     return (
         <div className="game-container">
-            <div><h1>Joc</h1></div>
+            <h1>Joc</h1>
 
-            <div className="matrix">
-                {matrix.map((row, i) => (
-                    <div key={i} className="matrix-row">
-                        {row.map((cell, j) => (
-                            <button key={j} className="matrix-cell">{cell}</button>
-                        ))}
-                    </div>
+            <div className="letter-list">
+                {configLetters.map((ltr, possiton_one,possiton_two) => (
+                    <button
+                        // key={possiton_one}
+                        // key={possiton_two}
+                        //disabled={disabled[idx]}
+                        onClick={() => handleLetterClick(possiton_one, possiton_two)}
+                        style={{ margin: "0 8px", padding: "12px", fontSize: "16px" }}
+                    >
+                        {ltr}
+                    </button>
                 ))}
             </div>
 
-            <div className="word-input">
-                <input
-                    value={word}
-                    onChange={(e) => setWord(e.target.value)}
-                    placeholder="Cuvântul format"
-                />
-                <input
-                    value={selectedPosition}
-                    onChange={(e) => setSelectedPosition(e.target.value)}
-                    placeholder="Poziții (ex: 0,0-0,1-0,2)"
-                />
-                <button onClick={handleAttempt}>Trimite încercare</button>
-                <button onClick={handleUpdateGame}>Finalizează joc</button>
-            </div>
+            {/* 2. Rezultatul ultimei încercări */}
+            {attemptResult && (
+                <div className="attempt-result" style={{ marginTop: "16px" }}>
+                    <strong>Rezultat:</strong> Scor curent = {attemptResult.score},
+                    Ai nimerit? = {attemptResult.ok}
+                </div>
+            )}
 
-            <h2>Clasament</h2>
-            <table>
+
+            {/* 4. Tabel Clasament */}
+            <h2 style={{ marginTop: "32px" }}>Clasament</h2>
+            <table border="1" cellPadding="8" style={{ borderCollapse: "collapse" }}>
                 <thead>
                 <tr>
                     <th>Jucător</th>
                     <th>Scor final</th>
+                    <th>Data start</th>
                 </tr>
                 </thead>
                 <tbody>
-                {classament.map((g, i) => (
+                {classament.map((row, i) => (
                     <tr key={i}>
-                        <td>{g.player.nickname}</td>
-                        <td>{g.finalScore}</td>
+                        <td>{row.nume_player}</td>
+                        <td>{row.scor}</td>
+                        <td>{row.when}</td>
                     </tr>
                 ))}
                 </tbody>
             </table>
 
-            <h2>Configurări jocuri</h2>
-            <table>
+            {/* 5. Tabel Jocuri câștigate */}
+            <h2 style={{ marginTop: "32px" }}>Jocuri câștigate</h2>
+            <table border="1" cellPadding="8" style={{ borderCollapse: "collapse" }}>
                 <thead>
                 <tr>
-                    <th>Dimensiune</th>
-                    <th>Limita timp</th>
-                    <th>Acțiune</th>
+                    <th>Scor final</th>
+                    <th>Nimeriri</th>
                 </tr>
                 </thead>
                 <tbody>
-                {configs.map((conf, i) => (
+                {wonGames.map((w, i) => (
                     <tr key={i}>
-                        <td>{conf.size}</td>
-                        <td>{conf.timeLimit}</td>
-                        <td>
-                            <button onClick={() => alert("Start joc cu config: " + conf.id)}>Start</button>
-                        </td>
+                        <td>{w.score}</td>
+                        <td>{w.wins}</td>
                     </tr>
                 ))}
                 </tbody>
             </table>
 
-            <div >
-                <button className="logout" onClick={() => {
-                    localStorage.removeItem("loggedIn");
-                    localStorage.removeItem("nickname");
-                    setLoggedIn(false);
-                }}>
+            {/* Logout */}
+            <div style={{ marginTop: "32px" }}>
+                <button
+                    onClick={() => {
+                        localStorage.removeItem("loggedIn");
+                        localStorage.removeItem("nickname");
+                        onLogout();
+                    }}
+                >
                     Logout
                 </button>
             </div>
         </div>
 
-    )
-        ;
+    );
+}
+
+function App() {
+    const [checkedLogin, setCheckedLogin] = useState(false);
+    const [loggedIn, setLoggedIn]   = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem("loggedIn");
+        if (saved === "true") setLoggedIn(true);
+        setCheckedLogin(true);
+    }, []);
+
+    const handleLogin = (nickname) => {
+        localStorage.setItem("loggedIn", "true");
+        localStorage.setItem("nickname", nickname);
+        setLoggedIn(true);
+    };
+
+    if (!checkedLogin) return null; // aşteptăm să vedem dacă suntem logaţi
+
+    return (
+        <BrowserRouter>
+            <Routes>
+
+                <Route
+                    path="/login"
+                    element={
+                        loggedIn
+                            ? <Navigate to="/" replace />
+                            : <Login onLogin={handleLogin} />
+                    }
+                />
+
+
+                <Route
+                    path="/"
+                    element={
+                        loggedIn
+                            ? <GamePage onLogout={() => setLoggedIn(false)} />
+                            : <Navigate to="/login" replace />
+                    }
+                />
+
+                <Route path="/admin" element={<AdminConfigs />} />
+
+
+                <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
 export default App;
