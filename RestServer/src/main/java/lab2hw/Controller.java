@@ -3,6 +3,7 @@ package lab2hw;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpSession;
 import lab2hw.dto.Attempt;
+import lab2hw.dto.AttemptRequest;
 import lab2hw.dto.ClassamentDTO;
 import lab2hw.dto.GameWon;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "http://localhost:3000",
@@ -25,15 +23,15 @@ import java.util.stream.Collectors;
 @RequestMapping("/game")
 public class Controller {
 
-    private List<String> letters_left;
+    private List<String> animals_left;
     private Game game;
     private Configuration configuration;
     private final BigController server;
     private final SimpMessagingTemplate messagingTemplate;
 
 
-    @Autowired
-    private SessionData sessionData;
+//    @Autowired
+//    private SessionData sessionData;
 
     @Autowired
     public Controller(BigController server,
@@ -42,14 +40,15 @@ public class Controller {
         this.messagingTemplate=messagingTemplate;
     }
 
-//    @PostConstruct
+//    @PostConstruct NU AM NEVOIE DELETE WHEN RAFINATING
 //    public void init() {
 //        List<Configuration> configurationList = server.getConfigurations();
 //        Collections.shuffle(configurationList);
 //        configuration = configurationList.get(0);
-//        letters_left =configuration.getKeys();
+//        animals_left = configuration.getValues(); //aici salvam ce animale mai avem negasite
 //        game = new Game();
 //        game.setTryes(0);
+//        game.setWins(0);
 //        game.setStartTime(LocalDateTime.now());
 //        game.setPlayer(sessionData.getPlayer());
 //        game.setIsWon(false);
@@ -65,10 +64,12 @@ public class Controller {
             List<Configuration> configs = server.getConfigurations();
             Collections.shuffle(configs);
             configuration = configs.get(0);
-            letters_left   = new ArrayList<>(configuration.getKeys());
-
+            animals_left = configuration.getValues(); //nu are dubluri
+            configuration.makePairs();
             game = new Game();
             game.setTryes(0);
+            game.setWins(0);
+            game.setFinalScore(0);
             game.setStartTime(LocalDateTime.now());
             game.setPlayer(player);  // acum e activă sesiunea
             game.setIsWon(false);
@@ -78,7 +79,7 @@ public class Controller {
 
     @GetMapping("/classament")
     public List<ClassamentDTO> getClassament() {
-        System.out.println("s a apelat get clsamen");
+        System.out.println("s-a apelat get clsamen");
         return server.getGames().stream()
                 .filter(g -> g.getPlayer() != null)
                 .sorted(Comparator.comparing(Game::getFinalScore).reversed())
@@ -91,30 +92,45 @@ public class Controller {
 
 
     @PostMapping
-    public lab2hw.dto.Attempt saveAttempt(@RequestBody Integer position) {
-         String leter_chosen = letters_left.get(0);
-         letters_left.remove(0);
-         game.setTryes(game.getTryes() + 1);
+    public Attempt saveAttempt(@RequestBody AttemptRequest request, HttpSession session) {
+        if (game == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game not initialized");
+        }
+        game.setTryes(game.getTryes() + 1);
+        boolean match = false;
+        int idx1 = request.getPositionOne();
+        int idx2 = request.getPositionTwo();
 
-         String letter_user = configuration.getKeys().get(position);
+        List<String> values = configuration.getValues();
+        if (idx1 < 0 || idx2 < 0 || idx1 >= values.size() || idx2 >= values.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid positions");
+        }
 
-         if(letter_user.equals(leter_chosen)) { //caz cand sunt egale
-             game.setIsWon(true);
+        if (values.get(idx1).equals(values.get(idx2))) {
+            match = true;
+            game.setWins(game.getWins() + 1);
+            game.setFinalScore(game.getFinalScore() - 1);
+            // remove matched item once (both pairs)
+            animals_left.remove(values.get(idx1));
 
-         }else if(configuration.getValues().get(letter_user) > configuration.getValues().get(leter_chosen)) {
-             game.setFinalScore(game.getFinalScore()+
-                     configuration.getValues().get(letter_user)
-                     + configuration.getValues().get(leter_chosen));
-         } else {
-             game.setFinalScore(game.getFinalScore() - configuration.getValues().get(letter_user));
-         }
+            if (game.getWins()==3) {
+                game.setIsWon(true);
+                server.saveGame(game);
+                broadcastClassament();
+            } else {
+                server.updateGame(game);
+                broadcastClassament();
+            }
+        } else {
+            game.setFinalScore(game.getFinalScore() + 2);
+        }
 
-         if(game.getTryes()==4){
-             server.saveGame(game);
-             broadcastClassament();
-         }
-
-         return new Attempt(game.getFinalScore(),leter_chosen);
+        Attempt attempt = new Attempt(game.getFinalScore(), match);
+        // finish if max tries or all pairs found
+        if (game.getTryes() ==6 || animals_left.isEmpty()) {
+            attempt.setFinished(true);
+        }
+        return attempt;
     }
 
     private void broadcastClassament() {
@@ -131,9 +147,27 @@ public class Controller {
 
         List<GameWon> gameWons = new ArrayList<>();
         for (Game game : games) {
-            gameWons.add(new GameWon(game.getFinalScore(),game.getLetters()));
+            if(game.getWins()>=2){
+                gameWons.add(new GameWon(game.getFinalScore(),game.getWins()));
+            }
         }
+        if(gameWons.isEmpty()) return List.of();
+        return gameWons;
+    }
 
+    @GetMapping("/{id}")
+    public List<GameWon> getByID(@PathVariable String id) {
+        List<Game> games = server.getGames().stream()
+                .filter(Game::isIsWon)
+                .toList();
+
+        List<GameWon> gameWons = new ArrayList<>();
+        for (Game game : games) {
+            if(game.getWins()>=2){
+                gameWons.add(new GameWon(game.getFinalScore(),game.getWins()));
+            }
+        }
+        if(gameWons.isEmpty()) return List.of();
         return gameWons;
     }
 

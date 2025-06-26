@@ -6,6 +6,7 @@ import SockJS                from 'sockjs-client';
 import { Stomp }             from '@stomp/stompjs';
 
 function GamePage({ onLogout }) {
+    const [matrix, setMatrix] = useState(Array(2).fill(Array(4).fill('')));
     const [configLetters, setConfigLetters] = useState([]);    // cele 4 litere
     const [disabled, setDisabled] = useState([false, false, false, false]); // butoane disable
     const [attemptResult, setAttemptResult] = useState(null);  // { finalScore, letterChosen }
@@ -22,7 +23,6 @@ function GamePage({ onLogout }) {
                 return res.json();
             })
             .then(data => {
-                // dacă backend îți trimite { data: [...] }, folosește data.data
                 const list = Array.isArray(data) ? data : data.data || [];
                 setClassament(list);
             })
@@ -57,26 +57,32 @@ function GamePage({ onLogout }) {
 
     }, []);
 
-    const handleLetterClick = (index) => {
+    const handleLetterClick = (possition_one, possition_two) => {
         fetch(`http://localhost:8080/game?nickname=${nickname}`, {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(index)
+            body: JSON.stringify({possition_one, possition_two})
         })
             .then(res => res.json())
             .then(attempt => {
                 setAttemptResult(attempt);
-                setDisabled(prev => {
-                    const next = [...prev];
-                    next[index] = true;
+                if(attempt.data.ok){
+                    setDisabled(prev => {
+                        const next = [...prev];
+                        next[possition_one] = true;
+                        next[possition_two] = true;
+                        // if (next.every(flag => flag)) {
+                        //     refreshTables();
+                        // }
+                        return next;
+                    });
+                }
 
-                    // if (next.every(flag => flag)) {
-                    //     refreshTables();
-                    // }
+                if(attempt.data.finished){
 
-                    return next;
-                });
+                }
+
             })
             .catch(console.error);
     };
@@ -86,13 +92,13 @@ function GamePage({ onLogout }) {
         <div className="game-container">
             <h1>Joc</h1>
 
-            {/* 1. Lista de 4 butoane cu literele din config */}
             <div className="letter-list">
-                {configLetters.map((ltr, idx) => (
+                {configLetters.map((ltr, possiton_one,possiton_two) => (
                     <button
-                        key={idx}
-                        disabled={disabled[idx]}
-                        onClick={() => handleLetterClick(idx)}
+                        // key={possiton_one}
+                        // key={possiton_two}
+                        //disabled={disabled[idx]}
+                        onClick={() => handleLetterClick(possiton_one, possiton_two)}
                         style={{ margin: "0 8px", padding: "12px", fontSize: "16px" }}
                     >
                         {ltr}
@@ -104,7 +110,7 @@ function GamePage({ onLogout }) {
             {attemptResult && (
                 <div className="attempt-result" style={{ marginTop: "16px" }}>
                     <strong>Rezultat:</strong> Scor curent = {attemptResult.score},
-                    Litera extrasă = {attemptResult.letter}
+                    Ai nimerit? = {attemptResult.ok}
                 </div>
             )}
 
@@ -136,14 +142,14 @@ function GamePage({ onLogout }) {
                 <thead>
                 <tr>
                     <th>Scor final</th>
-                    <th>Litere rămase</th>
+                    <th>Nimeriri</th>
                 </tr>
                 </thead>
                 <tbody>
                 {wonGames.map((w, i) => (
                     <tr key={i}>
                         <td>{w.score}</td>
-                        <td>{w.letters}</td>
+                        <td>{w.wins}</td>
                     </tr>
                 ))}
                 </tbody>

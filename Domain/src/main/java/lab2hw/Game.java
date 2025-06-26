@@ -25,7 +25,7 @@ public class Game extends lab2hw.Entity<Long> {
 
     private int tryes;
 
-    private String letters;
+    private int wins;
 
     public Game() {}
 
@@ -33,14 +33,23 @@ public class Game extends lab2hw.Entity<Long> {
                 LocalDateTime startTime,
                 boolean finished,
                 int finalScore,
-                int tryes) {
+                int tryes, int wins) {
         this.player = player;
         this.startTime = startTime;
         this.isWon = finished;
         this.finalScore = finalScore;
         this.tryes=tryes;
-        this.letters = "";
+        this.wins=wins;
     }
+
+    public int getWins() {
+        return wins;
+    }
+
+    public void setWins(int wins) {
+        this.wins = wins;
+    }
+
     public Player getPlayer() {
         return player;
     }
@@ -89,11 +98,5 @@ public class Game extends lab2hw.Entity<Long> {
         this.tryes = tryes;
     }
 
-    public String getLetters() {
-        return letters;
-    }
 
-    public void setLetters(String letters) {
-        this.letters = letters;
-    }
 }

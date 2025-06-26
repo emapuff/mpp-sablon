@@ -16,35 +16,33 @@ import java.util.Map;
 public class Configuration extends lab2hw.Entity<Long> {
     /**
      * Stocăm pozițiile capcanelor ca TEXT CSV
-     * în coloana `values_str`, convertite în List<Integer>
+     * în coloana `values_str`, convertite în List<String>
      */
+    @ElementCollection
     @Column(
             name = "values_str",
             nullable = false,
             columnDefinition = "TEXT"
     )
-    @Convert(converter = StringIntegerMapConverter.class)
-    private Map<String, Integer> values;
+    @Convert(converter = IntegerListConverter.class)
+    private List<String> values;
 
     public Configuration() {}
 
-    public Configuration(Map<String, Integer> values) {
+    public Configuration(List<String> values) {
         this.values = values;
     }
 
-    public Map<String, Integer>  getValues() {
+    public List<String>  getValues() {
         return values;
     }
 
-    public void setValues(Map<String, Integer> values) {
+    public void setValues(List<String> values) {
         this.values = values;
     }
 
-    public List<String> getKeys(){
-        List<String> keys = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : values.entrySet()) {
-            keys.add(entry.getKey());
-        }
-        return keys;
+    public void makePairs(){
+        values.addAll(values);
     }
+
 }

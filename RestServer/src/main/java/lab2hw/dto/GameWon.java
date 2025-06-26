@@ -2,12 +2,13 @@ package lab2hw.dto;
 
 public class GameWon {
     private int score;
-    private String letters;
+    private int wins;
 
     public GameWon() {}
-    public GameWon(int score, String letters) {
+
+    public GameWon(int score, int wins) {
         this.score = score;
-        this.letters = letters;
+        this.wins = wins;
     }
 
     public int getScore() {
@@ -18,11 +19,11 @@ public class GameWon {
         this.score = score;
     }
 
-    public String getLetters() {
-        return letters;
+    public int getWins() {
+        return wins;
     }
 
-    public void setLetters(String letters) {
-        this.letters = letters;
+    public void setWins(int wins) {
+        this.wins = wins;
     }
 }

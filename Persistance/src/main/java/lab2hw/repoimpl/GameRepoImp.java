@@ -43,11 +43,14 @@ public class GameRepoImp implements GameRepo {
 
     @Override
     public Game modifyFinal(Game game){
+        /*
+        cresc numarul de perechi gasite
+         */
         logger.info("Salvez sesiunea de joc: {}", game.getId());
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
-            game.setIsWon(true);
+            game.setWins(game.getWins() + 1);
             session.update(game);   // Hibernate știe ce s-a modificat
             transaction.commit();
         }

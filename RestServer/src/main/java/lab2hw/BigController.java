@@ -69,4 +69,8 @@ public class BigController {
     public List<Game> findGamesByPlayer(Player player){
         return gameRepoImp.findGamesByPlayer(player);
     }
+
+    public void updateGame(Game game){
+        gameRepoImp.modifyFinal(game);
+    }
 }

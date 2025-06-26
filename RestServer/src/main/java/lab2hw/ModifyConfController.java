@@ -32,7 +32,7 @@ public class ModifyConfController {
     @PutMapping("/{id}")
     public ResponseEntity<Configuration> update(
             @PathVariable Long id,
-            @RequestBody Map<String, Integer> newValues) {
+            @RequestBody List<String> newValues) {
         System.out.println(newValues);
         System.out.println(id);
         Configuration conf = controller.findConfigurationById(id)
@@ -43,7 +43,6 @@ public class ModifyConfController {
                         )
                 );
 
-        // aplici noul map direct
         conf.setValues(newValues);
         Configuration updated = controller.modifyConfiguration(conf);
         return ResponseEntity.ok(updated);
